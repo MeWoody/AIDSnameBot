@@ -4,8 +4,8 @@ const sql = require('sqlite')
 sql.open("./aidsnames.sqlite")
 
 const pf = ">"
-const usable = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-const base = "nUg_U2E5_ZNsNlk"
+const usable = "abcdefghijklmnopqrstuvwxyz0123456789";
+const base = "nUg_Q09z5fxq8Oa"
 
 function nameGen(base) {
     if (base.startsWith("nUg_")) {
@@ -46,11 +46,11 @@ client.on('ready', () => {
 
 client.on('message', msg => {
     sql.get(`SELECT * FROM names WHERE userID = "${msg.author.id}"`).then(r => {
+
         if (!r) {
-            let embed = simpleEmbed("ERROR!", "An sqlite error occured when attempting to fetch user data. You were most likely not found in the database! Creating an entry for you now...")
-            msg.author.send({ embed })
             sql.run(`INSERT INTO names (userID, name) VALUES (?, ?)`, [msg.author.id, "none"]);
         }
+
         if (msg.content.toLowerCase() ==  pf + "nuggen") {
             let name = "nUg_";
             for(i = 0; i < 11; i++) {
@@ -93,8 +93,15 @@ client.on('message', msg => {
         if (msg.content.toLowerCase() == pf + "getname") {
             if (r.name ==  "none") {
                 let Aname = nameGen(base)
-                sql.run(`UPDATE names SET name = "${Aname}" WHERE userID = "${msg.author.id}"`)
-                msg.author.send(`Set your new alt username to "${Aname}" in the database!`)
+                while (Aname[4] != "Q" || Aname[5] != "0" || Aname[6] != "9" || Aname[13] != "O" || Aname[14] != "a") {
+                    Aname = nameGen(base)
+                    console.log("Regenerating name...")
+                }
+                sql.get(`SELECT * FROM names WHERE name = "${Aname}"`).then(r2 => {
+                    if (r2) return msg.channel.send("Something went wrong... Please execute the command again.")
+                    sql.run(`UPDATE names SET name = "${Aname}" WHERE userID = "${msg.author.id}"`)
+                    msg.author.send(`Set your new alt username to "${Aname}" in the database!`)
+                })
             }
             else {
                 msg.channel.send("Already found a name you requested earlier in the database... Sending you the name in DM!")
@@ -104,8 +111,24 @@ client.on('message', msg => {
 
         if (msg.content.toLowerCase().startsWith(pf + "genchange")) {
             let args = msg.content.split(/\s+/g).slice(1);
-            if (args.length > 1 || args.length < 1) return msg.channel.send("Did you even ask Woody how the command works?")
+            if (args.length > 1) return msg.channel.send("Did you even ask Woody how the command works?")
+            if (args.length == 0) {
+                args[0] = base
+            }
             msg.channel.send(nameGen(args[0]))
+        }
+
+        if (msg.content.toLowerCase() == pf + "testaids") {
+            msg.channel.send("Generating 10 names with one character different from base...")
+            let list = [];
+            for (i = 0; i < 10; i++) {
+                let Aname = nameGen(base)
+                while (Aname[4] != "Q" || Aname[5] != "0" || Aname[6] != "9" || Aname[13] != "O" || Aname[14] != "a") {
+                    Aname = nameGen(base)
+                }
+                list.push(Aname)
+            }
+            msg.channel.send(list.join("\n"))
         }
 
         if (msg.content.toLowerCase() == pf + "test") {
